@@ -29,8 +29,12 @@ public class Main {
             imageLink = imageLink.replaceAll(regex, "");
             imageLink = imageLink.replace("background-image:url", "");
             System.out.println(imageLink);
-            System.out.println("");
 
+            elements = adPage.select("._2wKv2");
+            String tempCost = elements.text();
+            String cost = tempCost.substring(0, tempCost.indexOf("н")).concat("н");
+            System.out.println(cost);
+            System.out.println("");
         }
 
     }
