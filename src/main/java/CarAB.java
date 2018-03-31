@@ -39,4 +39,8 @@ public class CarAB {
         this.datePublicated = datePublicated;
         this.postId = postId;
     }
+
+    public void writeToDatabase() {
+
+    }
 }

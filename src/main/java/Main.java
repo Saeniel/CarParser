@@ -32,12 +32,12 @@ public class Main {
                           postId;         // id поста
 
     private static URL nextAbPage;
-    private static int pageIndex = 1;
+    private static int pageIndex = 2;
 
 
     public static void main(String[] args) throws Exception {
 
-        nextAbPage = new URL("https://ab.ua/api/_posts/?transport=1");
+        nextAbPage = new URL("https://ab.ua/api/_posts/?page=1&transport=1");
 
         parseAB();
 
@@ -47,7 +47,7 @@ public class Main {
 
     public static void parseAB() throws Exception {
 
-       while(!nextAbPage.toString().equals("")) {
+       while(!nextAbPage.toString().equals("https://ab.ua/api/_posts/?page=500&transport=1")) {
             JSONArray jsonArray = throwRequestToAB(nextAbPage);
 
             if(jsonArray != null) {
@@ -95,12 +95,20 @@ public class Main {
                     mileage = carAd.getString("mileage");
 
                     obj = carAd.getJSONObject("characteristics");
-                    objTemp = obj.getJSONObject("category");
-                    bodyType = objTemp.getString("title");
+                    try {
+                        objTemp = obj.getJSONObject("category");
+                        bodyType = objTemp.getString("title");
+                    } catch (Exception e) {
+                        bodyType = "";
+                    }
 
                     obj = carAd.getJSONObject("characteristics");
-                    objTemp = obj.getJSONObject("engine");
-                    fuel = objTemp.getString("title");
+                    try {
+                        objTemp = obj.getJSONObject("engine");
+                        fuel = objTemp.getString("title");
+                    } catch (Exception e) {
+                        fuel = "";
+                    }
 
                     obj = carAd.getJSONObject("characteristics");
                     try {
@@ -143,7 +151,9 @@ public class Main {
         Response response = client.newCall(request).execute();
 
         JSONObject obj = new JSONObject(response.body().string());
-        nextAbPage = new URL("https://ab.ua/api/_posts/?" + "&page="+ pageIndex + "transport=1");
+        // https://ab.ua/api/_posts/?page=2&transport=1
+        System.out.println(pageIndex);
+        nextAbPage = new URL("https://ab.ua/api/_posts/?" + "page="+ pageIndex + "&transport=1");
         pageIndex++;
         try {
             JSONArray params = obj.getJSONArray("results");
