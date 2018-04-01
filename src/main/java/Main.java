@@ -47,7 +47,7 @@ public class Main {
 
     public static void parseAB() throws Exception {
 
-       while(!nextAbPage.toString().equals("https://ab.ua/api/_posts/?page=500&transport=1")) {
+       while(!nextAbPage.toString().equals("https://ab.ua/api/_posts/?page=501&transport=1")) {
             JSONArray jsonArray = throwRequestToAB(nextAbPage);
 
             if(jsonArray != null) {
