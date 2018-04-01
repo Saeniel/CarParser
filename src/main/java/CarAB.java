@@ -41,6 +41,7 @@ public class CarAB {
     }
 
     public void writeToDatabase() {
-
+        // тут должна происходить запись в БД
+        // должно быть что-то в таком духе: carAb.writeToDatabase();
     }
 }

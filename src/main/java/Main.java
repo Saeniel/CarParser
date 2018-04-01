@@ -47,12 +47,13 @@ public class Main {
 
     public static void parseAB() throws Exception {
 
+       // пока не дойдем до 500 страницы
        while(!nextAbPage.toString().equals("https://ab.ua/api/_posts/?page=501&transport=1")) {
-            JSONArray jsonArray = throwRequestToAB(nextAbPage);
+            JSONArray jsonArray = throwRequestToAB(nextAbPage); // получаем массив объявлений
 
             if(jsonArray != null) {
 
-                for (int i = 0; i < jsonArray.length(); i++) {
+                for (int i = 0; i < jsonArray.length(); i++) { // и проходим по нему циклом
 
                     JSONArray arr;
                     JSONObject obj, objTemp;
@@ -126,14 +127,16 @@ public class Main {
 
                     datePublicated = carAd.getString("date_publicated");
 
+                    // создаём экземпляр класса
                     CarAB carAB = new CarAB(brand, model, image, price, color,
                             capacity, mileage, bodyType, fuel, gearBox, city, phone, datePublicated, postId);
 
+                    // и добавляем в массив объектов. это можно убрать и "на лету" записывать в БД.
                     listAb.add(carAB);
 
                 }
             } else {
-                System.out.println("Last page " + pageIndex);
+                System.out.println("Last page " + pageIndex);  // для отладки
                 break;
             }
         }
@@ -141,6 +144,7 @@ public class Main {
 
     public static JSONArray throwRequestToAB(URL url) throws Exception {
 
+        // формируем запрос
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder()
                 .url(url)
@@ -150,13 +154,13 @@ public class Main {
                 .build();
         Response response = client.newCall(request).execute();
 
-        JSONObject obj = new JSONObject(response.body().string());
-        // https://ab.ua/api/_posts/?page=2&transport=1
+        JSONObject obj = new JSONObject(response.body().string()); // получаем ответ
         System.out.println(pageIndex);
+        // берём сразу ссылку на следующую страницу
         nextAbPage = new URL("https://ab.ua/api/_posts/?" + "page="+ pageIndex + "&transport=1");
         pageIndex++;
         try {
-            JSONArray params = obj.getJSONArray("results");
+            JSONArray params = obj.getJSONArray("results"); // вытягиваем из ответа массив объявлений
             return params;
         } catch (JSONException e) {
             return null;
@@ -165,8 +169,10 @@ public class Main {
     }
 
     public static String throwPhoneRequest(String id) throws IOException {
+
        String phone;
 
+       // формируем запрос для получения номера телефона
        OkHttpClient client = new OkHttpClient();
        Request request = new Request.Builder()
                .url("https://ab.ua/api/_posts/9396051/phones/")
@@ -174,7 +180,7 @@ public class Main {
                .addHeader("Cache-Control", "no-cache")
                .addHeader("Postman-Token", "a135a41c-0864-47cf-99e5-a4f204f8113f")
                .build();
-       Response response = client.newCall(request).execute();
+       Response response = client.newCall(request).execute(); // и шлём его
 
        phone = response.body().string();
        return phone;
