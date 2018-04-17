@@ -6,19 +6,26 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.openqa.selenium.*;
+import org.openqa.selenium.chrome.ChromeDriver;
 
 import java.io.*;
 import java.net.URL;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
 
     private static ArrayList<CarAB> listAb = new ArrayList<>();
-    private static ArrayList<String> linksToAds = new ArrayList<>();
+    private static ArrayList<CarOLX> listOlx = new ArrayList<>();
+    private static ArrayList<String> linksToOlxAds = new ArrayList<>();
+    private static WebDriver driver;
 
     private static String brand,          // марка
                           model,          // модель
                           image,          // ссылка на изображение
+                          year,           // год выпуска
                           price,          // цена в грн
                           color,          // цвет
                           capacity,       // объем двигателя
@@ -41,9 +48,9 @@ public class Main {
 
         nextAbPage = new URL("https://ab.ua/api/_posts/?page=1&transport=1");
 
-       // parseAB();
+        //parseAB();
 
-        System.out.println("end of ab.ua");
+        //System.out.println("end of ab.ua");
 
         parseOLX();
 
@@ -71,6 +78,12 @@ public class Main {
 
                     obj = carAd.getJSONObject("model");
                     model = obj.getString("title");
+
+                    try {
+                        year = carAd.getString("year");
+                    } catch (Exception e) {
+                        year = "";
+                    }
 
                     arr = carAd.getJSONArray("photos");
                     try {
@@ -134,7 +147,7 @@ public class Main {
                     datePublicated = carAd.getString("date_publicated");
 
                     // создаём экземпляр класса
-                    CarAB carAB = new CarAB(brand, model, image, price, color,
+                    CarAB carAB = new CarAB(brand, model, image, price, year, color,
                             capacity, mileage, bodyType, fuel, gearBox, city, phone, datePublicated, postIdAB);
 
                     // и добавляем в массив объектов. нужно убрать и "на лету" записывать в БД,
@@ -196,31 +209,23 @@ public class Main {
     public static void parseOLX() throws Exception {
 
         for (int i = 0; i < 500; i++) {
-
             Response response = throwRequestToOLX(i+1);    // получаем i-ю страницу
             Document doc = Jsoup.parse(response.body().string());    // парсим ответ в HTML
             Elements elements = doc.select("tbody");        // берём элементы tbody
             Elements rawLinks = elements.select("a[href]");          // а у них - ссылки
             for (Element element: rawLinks) {                                    // для каждой ссылки выясняем
                 String tempStr = element.attr("abs:href");
-                if(tempStr.contains("obyavlenie")) {      // если ссылка содержит в себе слово "объявление"
-                    if(tempStr.contains(";promoted")) {   // дабы избежать повтором избавляемся от ;promoted
-                        String link = tempStr.replace(";promoted", "");
-                        if (!linksToAds.contains(link)) {
-                            linksToAds.add(link);
-                            parseOlxAd(link);
-                        }
-                    } else if(!tempStr.equals("")) {     // избавляемся от пустых ссылок (такое бывает)
-                        if (!linksToAds.contains(tempStr)) {
-                            linksToAds.add(element.attr("abs:href"));
-                            parseOlxAd(element.attr("abs:href"));
-                        }
+                if(tempStr.contains("obyavlenie") && !tempStr.equals("")) {      // если ссылка содержит в себе слово "объявление"
+                    tempStr = tempStr.replace(";promoted", "");
+                    if(!linksToOlxAds.contains(tempStr)) {
+                        linksToOlxAds.add(tempStr);
                     }
                 }
             }
-            String sdf = "sdf";
         }
-        String sdf2 = "sdf";
+        for(int i = 0; i < linksToOlxAds.size(); i++) {
+            parseOlxAd(linksToOlxAds.get(i));
+        }
     }
 
     public static Response throwRequestToOLX(int pageIndex) throws Exception {
@@ -243,8 +248,12 @@ public class Main {
     }
 
     public static void parseOlxAd(String url) throws Exception {
-        OkHttpClient client = new OkHttpClient();
 
+        System.out.println("request");
+        LocalDateTime ldt = LocalDateTime.now();
+        System.out.println(ldt.toString());
+
+        OkHttpClient client = new OkHttpClient();
         MediaType mediaType = MediaType.parse("multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW");
         RequestBody body = RequestBody.create(mediaType, "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"page\"\r\n\r\n2\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"search[category_id]\"\r\n\r\n108\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW--");
         Request request = new Request.Builder()
@@ -256,13 +265,32 @@ public class Main {
                 .build();
         Response response = client.newCall(request).execute();
 
+        System.out.println("end request");
+        ldt = LocalDateTime.now();
+        System.out.println(ldt.toString());
+
+        System.out.println("start parse data");
+        ldt = LocalDateTime.now();
+        System.out.println(ldt.toString());
+
         Document doc = Jsoup.parse(response.body().string());
         Elements elements = doc.select("div.offer-titlebox__details");
         elements = elements.select("em").select("small");
-        String id = elements.text();
-        postIdOLX = id.substring(17);
+        if(elements.text().equals("")) {
+            postIdOLX = "";
+        } else {
+            String tempId = elements.text();
+            postIdOLX = tempId.replace("Номер объявления: ", "");
+        }
 
-        price = doc.select("div.price-label").select("strong").text();
+        try {
+            price = doc.select("div.price-label").select("strong").text();
+        } catch (Exception e) {
+            price = "";
+            System.out.println(e.getMessage());
+            System.out.println(url);
+            System.out.println("price");
+        }
 
         Elements table = doc.select("table.details");
         Elements el = table.select("th:contains(Марка)");
@@ -271,6 +299,9 @@ public class Main {
             brand = val.text();
         } catch (Exception e) {
             brand = "";
+            System.out.println(e.getMessage());
+            System.out.println(url);
+            System.out.println("brand");
         }
 
         try {
@@ -279,6 +310,20 @@ public class Main {
             model = val.text();
         } catch (Exception e) {
             model = "";
+            System.out.println(e.getMessage());
+            System.out.println(url);
+            System.out.println("model");
+        }
+
+        try {
+            el = table.select("th:contains(Год выпуска)");
+            val = el.parents().select("td.value").first();
+            year = val.text();
+        } catch (Exception e) {
+            year = "";
+            System.out.println(e.getMessage());
+            System.out.println(url);
+            System.out.println("year");
         }
 
         try {
@@ -287,6 +332,9 @@ public class Main {
             color = val.text();
         } catch (Exception e) {
             color = "";
+            System.out.println(e.getMessage());
+            System.out.println(url);
+            System.out.println("color");
         }
 
         try {
@@ -295,6 +343,9 @@ public class Main {
             capacity = val.text();
         } catch (Exception e) {
             capacity = "";
+            System.out.println(e.getMessage());
+            System.out.println(url);
+            System.out.println("capacity");
         }
 
         try {
@@ -303,6 +354,9 @@ public class Main {
             mileage = val.text();
         } catch (Exception e) {
             mileage = "";
+            System.out.println(e.getMessage());
+            System.out.println(url);
+            System.out.println("mileage");
         }
 
         try {
@@ -311,6 +365,9 @@ public class Main {
             bodyType = val.text();
         } catch (Exception e) {
             bodyType = "";
+            System.out.println(e.getMessage());
+            System.out.println(url);
+            System.out.println("bodyType");
         }
 
         try {
@@ -319,6 +376,9 @@ public class Main {
             fuel = val.text();
         } catch (Exception e) {
             fuel = "";
+            System.out.println(e.getMessage());
+            System.out.println(url);
+            System.out.println("fuel");
         }
 
         try {
@@ -327,19 +387,85 @@ public class Main {
             gearBox = val.text();
         } catch (Exception e) {
             gearBox = "";
+            System.out.println(e.getMessage());
+            System.out.println(url);
+            System.out.println("gearBox");
         }
 
-        city = doc.select("a.show-map-link").select("strong").text();
-        city = city.substring( 0, city.indexOf(","));
+        try {
+            city = doc.select("a.show-map-link").select("strong").text();
+            city = city.substring(0, city.indexOf(","));
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            System.out.println(url);
+            System.out.println("city");
+        }
 
-        elements = doc.select("div.offer-titlebox__details").select("em");
-        datePublicated = elements.text();
-        String[] parts = datePublicated.split(",");
-        datePublicated = parts[1];
+        try {
+            elements = doc.select("div.offer-titlebox__details").select("em");
+            datePublicated = elements.text();
+            String[] parts = datePublicated.split(",");
+            datePublicated = parts[1];
+        } catch (Exception e) {
+            datePublicated = "";
+            System.out.println(e.getMessage());
+            System.out.println(url);
+            System.out.println("datePublicated");
+        }
 
-        val = doc.select("div#photo-gallery-opener").select("img").first();
-        image = val.absUrl("src");
-        String qwe = "f";
+        try {
+            val = doc.select("div#photo-gallery-opener").select("img").first();
+            image = val.absUrl("src");
+        } catch (Exception e) {
+            image = "";
+            System.out.println(e.getMessage());
+            System.out.println(url);
+            System.out.println("image");
+        }
+
+        System.out.println("end parse data");
+        ldt = LocalDateTime.now();
+        System.out.println(ldt.toString());
+
+        System.out.println("start parse phone");
+        ldt = LocalDateTime.now();
+        System.out.println(ldt.toString());
+
+        driver = new ChromeDriver();
+        try {
+            driver.manage().window().setPosition(new Point(-2000, 0));
+            driver.get(url);
+            driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+            WebElement webElement = driver.findElement
+                    (By.xpath("//*[@id=\"contact_methods\"]/li[2]/div"));
+            driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+            webElement.click();
+            Thread.sleep(4000);
+            Document page = Jsoup.parse(driver.getPageSource());
+            Elements phoneElement = page.select("div.contact-button.link-phone.atClickTracking.contact-a");
+            phone = phoneElement.text();
+            phone = phone.replace(" Показать", "");
+            driver.close();
+        } catch (Exception e) {
+            driver.close();
+            System.out.println(e.getMessage());
+            System.out.println(url);
+            phone = "";
+        }
+
+        System.out.println("end parse phone");
+        ldt = LocalDateTime.now();
+        System.out.println(ldt.toString());
+
+        if(!postIdOLX.equals("") && !phone.equals("")) {
+            CarOLX carOLX = new CarOLX(brand, model, image, price, year, color, capacity, mileage, bodyType, fuel, gearBox, city, phone, datePublicated, postIdOLX);
+            listOlx.add(carOLX);
+        }
+
+        System.out.println("object added to arraylist");
+        ldt = LocalDateTime.now();
+        System.out.println(ldt.toString());
+
     }
 
 }

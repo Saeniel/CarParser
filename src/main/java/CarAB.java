@@ -8,6 +8,7 @@ public class CarAB {
             model,          // модель
             image,          // ссылка на изображение
             price,          // цена в грн
+            year,           // год выпуска
             color,          // цвет
             capacity,       // объем двигателя
             mileage,        // пробег (тыс. км)
@@ -20,13 +21,14 @@ public class CarAB {
             datePublicated, // дата публикации объявления
             postId;         // id объявления
 
-    public CarAB(String brand, String model, String image, String price, String color,
+    public CarAB(String brand, String model, String image, String price, String year, String color,
                  String capacity, String mileage, String bodyType, String fuel,
                  String gearBox, String city, String phone, String datePublicated, String postId) {
         this.brand = brand;
         this.model = model;
         this.image = image;
         this.price = price;
+        this.year = year;
         this.color = color;
         this.capacity = capacity;
         this.mileage = mileage;

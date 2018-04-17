@@ -8,6 +8,7 @@ public class CarOLX {
             model,          // модель
             image,          // ссылка на изображение
             price,          // цена в грн
+            year,           // год выпуска
             color,          // цвет
             capacity,       // объем двигателя
             mileage,        // пробег (тыс. км)
@@ -20,12 +21,13 @@ public class CarOLX {
             datePublicated, // дата публикации объявления
             postId;         // id объявления
 
-    public CarOLX(String brand, String model, String image, String price, String color,
+    public CarOLX(String brand, String model, String image, String price, String year, String color,
                  String capacity, String mileage, String bodyType, String fuel,
                  String gearBox, String city, String phone, String datePublicated, String postId) {
         this.brand = brand;
         this.model = model;
         this.image = image;
+        this.year = year;
         this.price = price;
         this.color = color;
         this.capacity = capacity;
@@ -35,14 +37,14 @@ public class CarOLX {
         this.gearBox = gearBox;
         this.city = city;
         this.phone = phone;
-        this.site = "https://ab.ua";
+        this.site = "https://www.olx.ua";
         this.datePublicated = datePublicated;
         this.postId = postId;
     }
 
     public void writeToDatabase() {
         // тут должна происходить запись в БД
-        // должно быть что-то в таком духе: carAb.writeToDatabase();
+        // должно быть что-то в таком духе: carOlx.writeToDatabase();
     }
 
 }
